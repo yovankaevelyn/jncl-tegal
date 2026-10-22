@@ -1,0 +1,127 @@
+/* app/globals.css - Tailwind CSS v4 */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@plugin "tailwindcss-animate";
+
+/* =========================================================
+   THEME CONFIGURATION (Tailwind v4)
+   Stripe/Linear Professional Design System
+   ========================================================= */
+
+@theme {
+  /* Container */
+  --container-center: true;
+  --container-padding: 2rem;
+  --container-screen-2xl: 1400px;
+
+  /* Border Radius */
+  --radius: 0.5rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Colors - Light Mode (Indigo-based Professional) */
+  --color-background: oklch(100% 0 0);
+  --color-foreground: oklch(14.5% 0.012 254.09);
+
+  --color-card: oklch(100% 0 0);
+  --color-card-foreground: oklch(14.5% 0.012 254.09);
+
+  --color-popover: oklch(100% 0 0);
+  --color-popover-foreground: oklch(14.5% 0.012 254.09);
+
+  --color-primary: oklch(45.16% 0.244 264.05);
+  --color-primary-foreground: oklch(98.5% 0.002 264.05);
+
+  --color-secondary: oklch(96.7% 0.003 264.54);
+  --color-secondary-foreground: oklch(21% 0.034 265.75);
+
+  --color-muted: oklch(96.7% 0.003 264.54);
+  --color-muted-foreground: oklch(55.6% 0.016 253.85);
+
+  --color-accent: oklch(96.7% 0.003 264.54);
+  --color-accent-foreground: oklch(21% 0.034 265.75);
+
+  --color-destructive: oklch(57.7% 0.245 27.33);
+  --color-destructive-foreground: oklch(98.5% 0.002 264.05);
+
+  --color-border: oklch(91.4% 0.006 264.54);
+  --color-input: oklch(87.1% 0.010 264.54);
+  --color-ring: oklch(45.16% 0.244 264.05);
+
+  /* Chart Colors */
+  --color-chart-1: oklch(45.16% 0.244 264.05);
+  --color-chart-2: oklch(56.88% 0.101 192.23);
+  --color-chart-3: oklch(42.69% 0.054 237.28);
+  --color-chart-4: oklch(78.09% 0.142 90.85);
+  --color-chart-5: oklch(75.67% 0.174 49.08);
+
+  /* Sidebar Colors */
+  --color-sidebar: oklch(98.5% 0 0);
+  --color-sidebar-foreground: oklch(41.24% 0.009 265.75);
+  --color-sidebar-primary: oklch(45.16% 0.244 264.05);
+  --color-sidebar-primary-foreground: oklch(98.5% 0 0);
+  --color-sidebar-accent: oklch(96.7% 0.003 264.54);
+  --color-sidebar-accent-foreground: oklch(21% 0.034 265.75);
+  --color-sidebar-border: oklch(91.4% 0.006 264.54);
+  --color-sidebar-ring: oklch(45.16% 0.244 264.05);
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+/* =========================================================
+   DARK MODE THEME
+   ========================================================= */
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: oklch(14.5% 0.012 254.09);
+    --color-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-card: oklch(14.5% 0.012 254.09);
+    --color-card-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-popover: oklch(14.5% 0.012 254.09);
+    --color-popover-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-primary: oklch(58.5% 0.233 264.05);
+    --color-primary-foreground: oklch(14.5% 0.012 254.09);
+
+    --color-secondary: oklch(22% 0.020 265.75);
+    --color-secondary-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-muted: oklch(22% 0.020 265.75);
+    --color-muted-foreground: oklch(71.65% 0.023 253.89);
+
+    --color-accent: oklch(22% 0.020 265.75);
+    --color-accent-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-destructive: oklch(43.16% 0.183 29.23);
+    --color-destructive-foreground: oklch(98.5% 0.002 264.05);
+
+    --color-border: oklch(26% 0.020 265.75);
+    --color-input: oklch(26% 0.020 265.75);
+    --color-ring: oklch(58.5% 0.233 264.05);
+
+    /* Chart Colors - Dark Mode */
+    --color-chart-1: oklch(58.5% 0.233 264.05);
+    --color-chart-2: oklch(59.18% 0.13 178.32);
+    --color-chart-3: oklch(65.69% 0.176 77.95);
+    --color-chart-4: oklch(68.81% 0.148 307.22);
+    --color-chart-5: oklch(66.84% 0.183 12.42);
+
+    /* Sidebar Colors - Dark Mode */
+    --color-sidebar: oklch(17% 0.010 265.75);
+    --color-sidebar-foreground: oklch(95.88% 0.008 265.75);
+    --color-sidebar-primary: oklch(58.5% 0.233 264.05);
+    --color-sidebar-primary-foreground: oklch(100% 0 0);
+    --color-sidebar-accent: oklch(22% 0.020 265.75);
+    --color-sidebar-accent-foreground: oklch(95.88% 0.008 265.75);
+    --color-sidebar-border: oklch(26% 0.020 265.75);
+    --color-sidebar-ring: oklch(58.5% 0.233 264.05);
+  }
+}
