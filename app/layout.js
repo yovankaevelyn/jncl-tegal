@@ -1,20 +1,8 @@
 // app/layout.js
-import { Inter } from "next/font/google"
 import "./globals.css"
 
 import { AuthProvider } from '@/components/AuthProvider'
 import { Toaster } from '@/components/ui/toaster'
-
-
-// ✅ Optimized font loading
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: 'swap',
-  preload: true,
-  weight: ['400', '500', '600', '700'], // Only load weights you use
-  fallback: ['system-ui', 'arial'], // Faster fallback
-})
 
 // ✅ Metadata
 export const metadata = {
@@ -44,7 +32,7 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://mtbihkcfeniydkgkyskt.supabase.co" />
       </head>
       <body 
-        className={`${inter.variable} antialiased`}
+        className="font-sans antialiased"
         suppressHydrationWarning
       >
         <AuthProvider>
