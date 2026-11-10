@@ -21,16 +21,13 @@ const GudangClient = dynamic(() => import('./GudangClient'), {
 // ✅ SERVER COMPONENT - Renders INSTANTLY
 export default function GudangPage() {
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      {/* 
-        ✅ LCP ELEMENT - Renders IMMEDIATELY on server
-        This is static HTML, no JavaScript needed
-      */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+    <div className="min-h-screen p-3 sm:p-6 bg-gray-50">
+      {/* LCP Element */}
+      <div className="mb-4 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight">
           Daftar Permintaan Gudang
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">
           Pantau dan proses permintaan dari kasir secara real-time.
         </p>
       </div>

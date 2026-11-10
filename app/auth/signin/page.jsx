@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Package } from '@/lib/icons'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -60,8 +60,8 @@ export default function SignIn() {
       <Card className="w-full max-w-md shadow-sm border border-gray-200 bg-white">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="flex justify-center mb-6">
-            <div className="bg-indigo-600 text-white p-4 rounded-2xl">
-              <Package className="h-10 w-10" />
+            <div className="relative w-24 h-24">
+              <Image src="/logo.png" alt="JNCALI Logo" fill className="object-contain" />
             </div>
           </div>
           <CardTitle className="text-4xl font-bold text-gray-900 tracking-tight">

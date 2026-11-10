@@ -2,13 +2,11 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import useUsers from '@/hooks/useUsers'
 import { Clock, UserCheck, Users } from 'lucide-react'
 import { useMemo } from 'react'
 
-export default function UserStats() {
-  const { users, loading } = useUsers()
-
+// ✅ FIX #5: Terima users & loading dari props (bukan panggil useUsers sendiri)
+export default function UserStats({ users = [], loading = false }) {
   const stats = useMemo(() => {
     if (!users?.length) return []
 

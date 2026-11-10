@@ -18,6 +18,11 @@ export default function useRequestGudang({ user } = {}) {
   const isMounted = useRef(true)
   const channelRef = useRef(null)
 
+  // ✅ FIX #4: Gunakan ref untuk selectedRequest di dalam realtime callback
+  // Ini mencegah useEffect re-subscribe channel setiap kali selectedRequest berubah
+  const selectedRequestRef = useRef(null)
+  selectedRequestRef.current = selectedRequest
+
   // 🔹 Fetch requests dengan JOIN
   const fetchRequests = useCallback(async () => {
     if (!supabase) return
@@ -133,7 +138,8 @@ export default function useRequestGudang({ user } = {}) {
           description: `Permintaan diubah menjadi "${newStatus}"`,
         })
 
-        if (selectedRequest?.id === requestId) {
+        // ✅ FIX #4: Gunakan ref instead of state dalam callback
+        if (selectedRequestRef.current?.id === requestId) {
           await fetchRequestItems(requestId)
         }
       } catch (error) {
@@ -151,7 +157,7 @@ export default function useRequestGudang({ user } = {}) {
         setUpdatingId(null)
       }
     },
-    [supabase, toast, selectedRequest, fetchRequestItems, fetchRequests]
+    [supabase, toast, fetchRequestItems, fetchRequests]
   )
 
   // 🔹 Select request
@@ -164,6 +170,9 @@ export default function useRequestGudang({ user } = {}) {
   )
 
   // 🔹 Setup realtime subscription
+  // ✅ FIX #4: Menghapus selectedRequest & fetchRequestItems dari dependency array
+  // Menggunakan ref (selectedRequestRef) di dalam callback agar channel
+  // tidak di-subscribe ulang setiap kali user memilih request berbeda
   useEffect(() => {
     if (!user || !supabase) return
 
@@ -229,8 +238,18 @@ export default function useRequestGudang({ user } = {}) {
           
           if (!isMounted.current) return
 
-          if (selectedRequest?.id === payload.new?.request_id) {
-            fetchRequestItems(selectedRequest.id)
+          // ✅ FIX #4: Menggunakan ref, bukan state langsung
+          const currentSelected = selectedRequestRef.current
+          if (currentSelected?.id === payload.new?.request_id) {
+            supabase
+              .from('request_items')
+              .select('id, request_id, product_code, product_color, product_size, quantity')
+              .eq('request_id', currentSelected.id)
+              .then(({ data }) => {
+                if (isMounted.current) {
+                  setItems(Array.isArray(data) ? data : [])
+                }
+              })
           }
 
           setTimeout(fetchRequests, 300)
@@ -249,7 +268,7 @@ export default function useRequestGudang({ user } = {}) {
         channelRef.current = null
       }
     }
-  }, [user, supabase, fetchRequests, selectedRequest, fetchRequestItems, toast])
+  }, [user, supabase, fetchRequests, toast])
 
   return {
     requests,

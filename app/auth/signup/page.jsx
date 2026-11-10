@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Package } from '@/lib/icons'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -42,8 +42,8 @@ export default function SignUp() {
         <Card className="w-full max-w-md shadow-sm border border-gray-200">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
-                <Package className="h-8 w-8" />
+              <div className="relative w-20 h-20">
+                <Image src="/logo.png" alt="JNCALI Logo" fill className="object-contain" />
               </div>
             </div>
             <CardTitle className="text-2xl text-gray-900">Registrasi Berhasil!</CardTitle>
@@ -77,8 +77,8 @@ export default function SignUp() {
       <Card className="w-full max-w-md shadow-sm border border-gray-200">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-indigo-600 text-white p-3 rounded-xl">
-              <Package className="h-8 w-8" />
+            <div className="relative w-20 h-20">
+              <Image src="/logo.png" alt="JNCALI Logo" fill className="object-contain" />
             </div>
           </div>
           <CardTitle className="text-3xl font-bold text-gray-900">

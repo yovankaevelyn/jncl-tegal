@@ -1,15 +1,20 @@
 // middleware.js
+// Paksa Node.js runtime agar @supabase/ssr tidak menyebabkan
+// warning "Node.js API is not supported in the Edge Runtime"
+export const runtime = 'nodejs'
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl
 
-  // ✅ CRITICAL: Skip middleware for static files & API routes
+  // ✅ CRITICAL: Skip middleware for static files, API routes & public display
   if (
     pathname.startsWith('/_next/static') ||
     pathname.startsWith('/_next/image') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/display') ||
     pathname.includes('.') ||
     pathname === '/favicon.ico'
   ) {

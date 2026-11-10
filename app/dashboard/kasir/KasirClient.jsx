@@ -1,8 +1,9 @@
 //app/dashboard/kasir/KasirClient.jsx
 'use client';
 
-import { MessageSquare, ShoppingCart, Wifi, WifiOff } from '@/lib/icons';
+import { ChevronDown, ChevronUp, History, MessageSquare, ShoppingCart, Wifi, WifiOff } from '@/lib/icons';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Hooks & Utilities
@@ -40,6 +41,7 @@ export default function KasirClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const [message, setMessage] = useState('');
+  const [showMessage, setShowMessage] = useState(false);
 
   // Request/Riwayat (Custom Hook)
   const { requests, loading: loadingRequests, createRequest } = useRequestKasir({ user: profile });
@@ -280,33 +282,85 @@ export default function KasirClient() {
 
   // ✅ Render
   return (
-    <>
-      {/* Real-time Status Indicator */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-gray-500">
-          {typeof totalProducts === 'number'
-            ? `${totalProducts.toLocaleString('id-ID')} produk tersedia`
-            : 'Memuat jumlah produk…'}
-        </div>
-        <div className="flex items-center gap-2">
-          {isConnected ? (
-            <>
-              <Wifi className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs text-emerald-600">Real-time Active</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4 text-red-500" />
-              <span className="text-xs text-red-600">Offline</span>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="p-3 sm:p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
 
-      {/* Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Header Halaman ── */}
+        <div className="mb-4 sm:mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight">
+              Point of Request
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 hidden sm:block">
+              Buat dan kelola permintaan barang ke gudang
+            </p>
+          </div>
+          {/* Real-time Status */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-sm text-gray-400 hidden lg:inline">
+              {typeof totalProducts === 'number'
+                ? `${totalProducts.toLocaleString('id-ID')} produk tersedia`
+                : 'Memuat produk…'}
+            </span>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border ${
+              isConnected
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-red-50 text-red-700 border-red-200'
+            }`}>
+              {isConnected ? (
+                <><Wifi className="h-3.5 w-3.5" /><span className="hidden sm:inline">Live</span></>
+              ) : (
+                <><WifiOff className="h-3.5 w-3.5" /><span className="hidden sm:inline">Offline</span></>
+              )}
+            </div>
+          </div>
+        </div>
+
+      {/* Layout — mobile: kolom tunggal dengan summary di ATAS cart di mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+
+        {/* Mobile: Summary sticky di atas — hanya tampil di mobile */}
+        <div className="lg:hidden">
+          <Card className="border border-gray-200 shadow-sm">
+            <CardContent className="pt-3 pb-3 px-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <ShoppingCart className="h-4 w-4 text-gray-400" />
+                  <span>Keranjang</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMessage(prev => !prev)}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>{showMessage ? 'Tutup' : 'Pesan'}</span>
+                  {message && !showMessage && (
+                    <span className="bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">•</span>
+                  )}
+                </button>
+              </div>
+              {showMessage && (
+                <Textarea
+                  placeholder="Pesan untuk gudang..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20 text-sm"
+                  rows={2}
+                  autoFocus
+                />
+              )}
+              <CartSummary
+                cartItems={cartItems}
+                isLoading={loadingRequests}
+                submitRequest={handleSubmit}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Left: Search & Cart List */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <SearchBar
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -326,8 +380,8 @@ export default function KasirClient() {
           )}
         </div>
 
-        {/* Right: Summary */}
-        <div className="lg:col-span-1">
+        {/* Right: Summary — hanya tampil di desktop */}
+        <div className="hidden lg:block lg:col-span-1">
           <Card className="border border-gray-200 shadow-sm sticky top-20">
             <CardHeader className="border-b border-gray-200 pb-4">
               <CardTitle className="flex items-center space-x-2 text-gray-900 text-base">
@@ -336,18 +390,35 @@ export default function KasirClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {/* Pesan untuk Gudang — collapsed by default */}
               <div>
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-gray-400" />
-                  Pesan untuk Gudang (opsional)
-                </label>
-                <Textarea
-                  placeholder="Tulis pesan singkat (contoh: Tolong segera dikirim)"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="mt-2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
-                  rows={3}
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowMessage(prev => !prev)}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors w-full text-left"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{showMessage ? 'Sembunyikan pesan' : 'Tambah pesan untuk gudang'}</span>
+                  {message && !showMessage && (
+                    <span className="ml-auto text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
+                      Ada pesan
+                    </span>
+                  )}
+                  {showMessage
+                    ? <ChevronUp className="w-4 h-4 ml-auto" />
+                    : <ChevronDown className="w-4 h-4 ml-auto" />
+                  }
+                </button>
+                {showMessage && (
+                  <Textarea
+                    placeholder="Tulis pesan singkat (contoh: Tolong segera dikirim)"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="mt-2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
+                    rows={3}
+                    autoFocus
+                  />
+                )}
               </div>
               <CartSummary
                 cartItems={cartItems}
@@ -359,9 +430,25 @@ export default function KasirClient() {
         </div>
       </div>
 
-      {/* Riwayat Permintaan */}
+      {/* Riwayat Permintaan Hari Ini */}
       <div className="mt-10">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Riwayat Permintaan</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <History className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900">Riwayat Hari Ini</h2>
+            {requests.length > 0 && (
+              <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                {requests.length}{requests.length === 20 ? '+' : ''}
+              </span>
+            )}
+          </div>
+          <Link
+            href="/dashboard/history"
+            className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline font-medium flex items-center gap-1 transition-colors"
+          >
+            Lihat semua riwayat →
+          </Link>
+        </div>
         {!ready ? (
           <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200">
             Mengambil sesi pengguna...
@@ -444,15 +531,16 @@ export default function KasirClient() {
             })}
             {requests.length === 0 && (
               <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <p className="text-gray-500 text-sm">Belum ada permintaan.</p>
+                <p className="text-gray-500 text-sm">Belum ada permintaan hari ini.</p>
                 <p className="text-gray-400 text-xs mt-1">
-                  Mulai tambahkan produk ke keranjang untuk membuat permintaan
+                  Permintaan yang Anda kirim hari ini akan muncul di sini
                 </p>
               </div>
             )}
           </div>
         )}
       </div>
-    </>
+      </div>
+    </div>
   );
 }

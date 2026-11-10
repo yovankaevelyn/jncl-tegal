@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from '@/lib/icons'
+import { productSchema } from '@/lib/validations'
 import { useState } from 'react'
 
 export default function ProductForm({ onSubmit, onCancel }) {
@@ -15,17 +16,39 @@ export default function ProductForm({ onSubmit, onCancel }) {
     category: '',
   })
   const [loading, setLoading] = useState(false)
+  // ✅ FIX #7: State untuk error validasi per-field
+  const [errors, setErrors] = useState({})
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // Hapus error saat user mengetik
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // ✅ FIX #7: Validasi dengan Zod sebelum submit
+    const result = productSchema.safeParse(formData)
+    if (!result.success) {
+      const fieldErrors = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0]
+        if (field && !fieldErrors[field]) {
+          fieldErrors[field] = err.message
+        }
+      })
+      setErrors(fieldErrors)
+      return
+    }
+
+    setErrors({})
     setLoading(true)
     try {
-      await onSubmit(formData)
+      await onSubmit(result.data) // Gunakan data yang sudah di-trim oleh Zod
       setFormData({ code: '', color: '', size: '', category: '' })
     } catch (err) {
       console.error('Gagal menambahkan produk:', err)
@@ -48,8 +71,9 @@ export default function ProductForm({ onSubmit, onCancel }) {
           onChange={handleChange}
           placeholder="Misal: PRD-001"
           required
-          className="mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
+          className={`mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20 ${errors.code ? 'border-red-400 focus:border-red-500' : ''}`}
         />
+        {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
       </div>
 
       {/* Warna */}
@@ -64,8 +88,9 @@ export default function ProductForm({ onSubmit, onCancel }) {
           onChange={handleChange}
           placeholder="Misal: Merah"
           required
-          className="mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
+          className={`mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20 ${errors.color ? 'border-red-400 focus:border-red-500' : ''}`}
         />
+        {errors.color && <p className="mt-1 text-xs text-red-500">{errors.color}</p>}
       </div>
 
       {/* Ukuran */}
@@ -80,8 +105,9 @@ export default function ProductForm({ onSubmit, onCancel }) {
           onChange={handleChange}
           placeholder="Misal: L / M / S / XL"
           required
-          className="mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
+          className={`mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20 ${errors.size ? 'border-red-400 focus:border-red-500' : ''}`}
         />
+        {errors.size && <p className="mt-1 text-xs text-red-500">{errors.size}</p>}
       </div>
 
       {/* Kategori */}
@@ -95,8 +121,9 @@ export default function ProductForm({ onSubmit, onCancel }) {
           value={formData.category}
           onChange={handleChange}
           placeholder="Misal: Kaos, Kemeja, Celana"
-          className="mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20"
+          className={`mt-1 text-gray-900 placeholder:text-gray-400 bg-white border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/20 ${errors.category ? 'border-red-400 focus:border-red-500' : ''}`}
         />
+        {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
       </div>
 
       {/* Tombol */}

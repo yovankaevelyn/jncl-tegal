@@ -3,6 +3,7 @@
 
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/utils/supabase/client'
+import { createRequestSchema, validate } from '@/lib/validations'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export default function useRequestKasir({ user }) {
@@ -15,12 +16,16 @@ export default function useRequestKasir({ user }) {
   const isMounted = useRef(true)
   const channelRef = useRef(null)
 
-  // 🔹 Fetch requests dengan JOIN user_profiles
+  // 🔹 Fetch requests hari ini saja, maks 20 terbaru
   const fetchRequests = useCallback(async () => {
     if (!user?.id || !supabase) return
 
     setLoading(true)
     try {
+      // Filter: hanya hari ini (00:00:00 s/d 23:59:59 lokal → UTC)
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -45,7 +50,9 @@ export default function useRequestKasir({ user }) {
           )
         `)
         .eq('kasir_id', user.id)
+        .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: false })
+        .limit(20)
 
       if (error) throw error
 
@@ -92,11 +99,28 @@ export default function useRequestKasir({ user }) {
         return null
       }
 
+      // ✅ FIX #7: Validasi input dengan Zod sebelum kirim ke database
+      const validation = validate(createRequestSchema, { message, items })
+      if (!validation.success) {
+        toast({
+          title: 'Data tidak valid',
+          description: validation.error,
+          variant: 'destructive',
+        })
+        return null
+      }
+
       try {
+        // ✅ FIX #6: Request number collision-resistant menggunakan crypto random
+        // Format: REQ-YYYYMMDD-XXXXXX (6 karakter random hex)
+        // Crypto random menghasilkan ~16 juta kombinasi unik per hari
         const now = new Date()
-        const request_number = `REQ-${now.getFullYear()}${String(
-          now.getMonth() + 1
-        ).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${now.getTime().toString().slice(-6)}`
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+        const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(3)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('')
+          .toUpperCase()
+        const request_number = `REQ-${dateStr}-${randomHex}`
 
         const { data: newReq, error: reqErr } = await supabase
           .from('requests')

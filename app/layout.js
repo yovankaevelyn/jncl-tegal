@@ -20,7 +20,11 @@ const inter = Inter({
 export const metadata = {
   title: "JNCALI - Warehouse Management",
   description: "Point of Request & Item Dispatch System",
-  manifest: '/manifest.json', // If you have PWA
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 // ✅ Viewport

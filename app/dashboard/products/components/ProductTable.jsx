@@ -1,18 +1,32 @@
 //app/dashboard/products/components/ProductTable.jsx
 'use client'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/components/ui/use-toast'
-import { Pencil, Save, Trash2, X } from '@/lib/icons'
+import { Loader2, Pencil, Save, Trash2, X } from '@/lib/icons'
 import { useState } from 'react'
 
 export default function ProductTable({ products, onDelete, onUpdate }) {
   const { toast } = useToast()
   const [editingId, setEditingId] = useState(null)
   const [editedData, setEditedData] = useState({})
+
+  // ✅ FIX #3: State untuk AlertDialog, menggantikan confirm()
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, productId: null })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const startEditing = (product) => {
     setEditingId(product.id)
@@ -47,153 +61,195 @@ export default function ProductTable({ products, onDelete, onUpdate }) {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (confirm('Yakin ingin menghapus produk ini?')) {
-      try {
-        await onDelete(id)
-        toast({
-          title: 'Produk dihapus',
-          description: 'Data produk telah dihapus dari database.',
-        })
-      } catch (error) {
-        console.error(error)
-        toast({
-          title: 'Gagal menghapus',
-          description: 'Terjadi kesalahan saat menghapus produk.',
-          variant: 'destructive',
-        })
-      }
+  // ✅ FIX #3: Konfirmasi hapus menggunakan AlertDialog, bukan confirm()
+  const handleDeleteConfirm = async () => {
+    const id = deleteDialog.productId
+    if (!id) return
+
+    try {
+      setIsDeleting(true)
+      await onDelete(id)
+      toast({
+        title: 'Produk dihapus',
+        description: 'Data produk telah dihapus dari database.',
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: 'Gagal menghapus',
+        description: 'Terjadi kesalahan saat menghapus produk.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialog({ open: false, productId: null })
     }
   }
 
   return (
-    <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
-      <CardHeader className="border-b border-gray-200 bg-white">
-        <CardTitle className="text-base font-semibold text-gray-900">Daftar Produk</CardTitle>
-      </CardHeader>
+    <>
+      <Card className="bg-white border border-gray-200 shadow-sm rounded-lg">
+        <CardHeader className="border-b border-gray-200 bg-white">
+          <CardTitle className="text-base font-semibold text-gray-900">Daftar Produk</CardTitle>
+        </CardHeader>
 
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50 hover:bg-gray-50">
-                <TableHead className="w-[20%] text-gray-600 font-medium">Kode Barang</TableHead>
-                <TableHead className="w-[20%] text-gray-600 font-medium">Warna</TableHead>
-                <TableHead className="w-[15%] text-gray-600 font-medium">Ukuran</TableHead>
-                <TableHead className="w-[25%] text-gray-600 font-medium">Kategori</TableHead>
-                <TableHead className="text-right w-[20%] text-gray-600 font-medium">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-400">
-                    Belum ada produk.
-                  </TableCell>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableHead className="w-[20%] text-gray-600 font-medium">Kode Barang</TableHead>
+                  <TableHead className="w-[20%] text-gray-600 font-medium">Warna</TableHead>
+                  <TableHead className="w-[15%] text-gray-600 font-medium">Ukuran</TableHead>
+                  <TableHead className="w-[25%] text-gray-600 font-medium">Kategori</TableHead>
+                  <TableHead className="text-right w-[20%] text-gray-600 font-medium">Aksi</TableHead>
                 </TableRow>
-              ) : (
-                products.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      {editingId === product.id ? (
-                        <Input
-                          name="code"
-                          value={editedData.code}
-                          onChange={handleChange}
-                          className="h-8 border-gray-300"
-                        />
-                      ) : (
-                        <span className="font-mono font-medium text-gray-900">{product.code}</span>
-                      )}
-                    </TableCell>
+              </TableHeader>
 
-                    <TableCell>
-                      {editingId === product.id ? (
-                        <Input
-                          name="color"
-                          value={editedData.color}
-                          onChange={handleChange}
-                          className="h-8 border-gray-300"
-                        />
-                      ) : (
-                        <span className="text-gray-700">{product.color}</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      {editingId === product.id ? (
-                        <Input
-                          name="size"
-                          value={editedData.size}
-                          onChange={handleChange}
-                          className="h-8 border-gray-300"
-                        />
-                      ) : (
-                        <span className="text-gray-700">{product.size}</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      {editingId === product.id ? (
-                        <Input
-                          name="category"
-                          value={editedData.category}
-                          onChange={handleChange}
-                          className="h-8 border-gray-300"
-                        />
-                      ) : (
-                        <span className="text-gray-700">{product.category || '-'}</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      {editingId === product.id ? (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleSave}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                          >
-                            <Save size={14} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={cancelEditing}
-                            className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          >
-                            <X size={14} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => startEditing(product)}
-                            className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                          >
-                            <Pencil size={14} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(product.id)}
-                            className="text-gray-400 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      )}
+              <TableBody>
+                {products.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                      Belum ada produk.
                     </TableCell>
                   </TableRow>
-                ))
+                ) : (
+                  products.map((product) => (
+                    <TableRow key={product.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        {editingId === product.id ? (
+                          <Input
+                            name="code"
+                            value={editedData.code}
+                            onChange={handleChange}
+                            className="h-8 border-gray-300"
+                          />
+                        ) : (
+                          <span className="font-mono font-medium text-gray-900">{product.code}</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {editingId === product.id ? (
+                          <Input
+                            name="color"
+                            value={editedData.color}
+                            onChange={handleChange}
+                            className="h-8 border-gray-300"
+                          />
+                        ) : (
+                          <span className="text-gray-700">{product.color}</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {editingId === product.id ? (
+                          <Input
+                            name="size"
+                            value={editedData.size}
+                            onChange={handleChange}
+                            className="h-8 border-gray-300"
+                          />
+                        ) : (
+                          <span className="text-gray-700">{product.size}</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        {editingId === product.id ? (
+                          <Input
+                            name="category"
+                            value={editedData.category}
+                            onChange={handleChange}
+                            className="h-8 border-gray-300"
+                          />
+                        ) : (
+                          <span className="text-gray-700">{product.category || '-'}</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        {editingId === product.id ? (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              onClick={handleSave}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            >
+                              <Save size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelEditing}
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                            >
+                              <X size={14} />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startEditing(product)}
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDeleteDialog({ open: true, productId: product.id })}
+                              className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ✅ FIX #3: AlertDialog menggantikan confirm() */}
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDialog({ open: false, productId: null })
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
+            <AlertDialogDescription>
+              Yakin ingin menghapus produk ini? Data produk akan dihapus secara permanen dari database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Ya, Hapus'
               )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

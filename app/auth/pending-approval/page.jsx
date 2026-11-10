@@ -3,7 +3,7 @@
 import { useAuth } from '@/components/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock } from '@/lib/icons'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -33,8 +33,8 @@ export default function PendingApproval() {
       <Card className="w-full max-w-md shadow-sm border border-gray-200">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-amber-100 text-amber-600 p-3 rounded-xl">
-              <Clock className="h-8 w-8" />
+            <div className="relative w-20 h-20">
+              <Image src="/logo.png" alt="JNCALI Logo" fill className="object-contain" />
             </div>
           </div>
           <CardTitle className="text-2xl text-gray-900">Menunggu Persetujuan</CardTitle>

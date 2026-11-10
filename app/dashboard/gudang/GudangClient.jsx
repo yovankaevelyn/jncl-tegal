@@ -69,10 +69,11 @@ export default function GudangClient() {
   const safeRequests = Array.isArray(requests) ? requests : []
 
   // Filter by status
-  const newRequests = safeRequests.filter(r => r.status === 'Baru')
+  const newRequests       = safeRequests.filter(r => r.status === 'Baru')
   const processingRequests = safeRequests.filter(r => r.status === 'Diproses')
-  const completedRequests = safeRequests.filter(r => r.status === 'Selesai')
-  const cancelledRequests = safeRequests.filter(r => r.status === 'Batal' || r.status === 'Dibatalkan')
+  const completedRequests  = safeRequests.filter(r => r.status === 'Selesai')
+  const cancelledRequests  = safeRequests.filter(r => r.status === 'Batal' || r.status === 'Dibatalkan')
+  const activeRequests     = safeRequests.filter(r => r.status === 'Baru' || r.status === 'Diproses')
 
   if (loading) {
     return (
@@ -83,54 +84,79 @@ export default function GudangClient() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats & Status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
-            <Clock className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-sm font-medium text-blue-700">{newRequests.length} Baru</span>
+    <div className="space-y-5">
+
+      {/* ── Stats Bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Aktif badge — highlight jika ada */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${
+            newRequests.length > 0
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-blue-50 text-blue-700 border-blue-200'
+          }`}>
+            <Clock className="h-3.5 w-3.5" />
+            <span>{newRequests.length} Baru</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
-            <Loader2 className="h-3.5 w-3.5 text-amber-600" />
-            <span className="text-sm font-medium text-amber-700">{processingRequests.length} Diproses</span>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${
+            processingRequests.length > 0
+              ? 'bg-amber-500 text-white border-amber-500'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
+          }`}>
+            <Loader2 className="h-3.5 w-3.5" />
+            <span>{processingRequests.length} Diproses</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="text-sm font-medium text-emerald-700">{completedRequests.length} Selesai</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-sm font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>{completedRequests.length} Selesai</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Live indicator */}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+          isConnected
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
           {isConnected ? (
-            <>
-              <Wifi className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs text-emerald-600">Real-time Active</span>
-            </>
+            <><Wifi className="h-3.5 w-3.5" /><span>Live</span></>
           ) : (
-            <>
-              <WifiOff className="h-4 w-4 text-red-500" />
-              <span className="text-xs text-red-600">Offline</span>
-            </>
+            <><WifiOff className="h-3.5 w-3.5" /><span>Offline</span></>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">Semua ({safeRequests.length})</TabsTrigger>
-          <TabsTrigger value="new">Baru ({newRequests.length})</TabsTrigger>
-          <TabsTrigger value="processing">Diproses ({processingRequests.length})</TabsTrigger>
-          <TabsTrigger value="completed">Selesai ({completedRequests.length})</TabsTrigger>
-          <TabsTrigger value="cancelled">Batal ({cancelledRequests.length})</TabsTrigger>
+      {/* ── Tabs ── */}
+      <Tabs defaultValue="active" className="w-full">
+        {/* Mobile: 2 baris tabs; Desktop: 1 baris 5 kolom */}
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto gap-1 p-1">
+          <TabsTrigger value="active" className="relative text-xs sm:text-sm py-2">
+            Aktif
+            {activeRequests.length > 0 && (
+              <span className="ml-1 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                {activeRequests.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="new" className="text-xs sm:text-sm py-2">
+            Baru <span className="ml-1 opacity-70">({newRequests.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="processing" className="text-xs sm:text-sm py-2">
+            Proses <span className="ml-1 opacity-70">({processingRequests.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs sm:text-sm py-2 col-span-1">
+            Selesai <span className="ml-1 opacity-70">({completedRequests.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="text-xs sm:text-sm py-2 col-span-2 sm:col-span-1">
+            Dibatal <span className="ml-1 opacity-70">({cancelledRequests.length})</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-6">
-          {safeRequests.length === 0 ? (
-            <EmptyState />
+        <TabsContent value="active" className="mt-6">
+          {activeRequests.length === 0 ? (
+            <EmptyState message="Tidak ada permintaan aktif" icon={<CheckCircle2 className="h-10 w-10 text-emerald-300" />} subtitle="Semua permintaan sudah diproses!" />
           ) : (
-            <RequestGrid requests={safeRequests} updateStatus={updateStatus} updatingId={updatingId} />
+            <RequestGrid requests={activeRequests} updateStatus={updateStatus} updatingId={updatingId} />
           )}
         </TabsContent>
 
@@ -170,14 +196,19 @@ export default function GudangClient() {
   )
 }
 
-// Helper Components
-function EmptyState({ message = "Belum ada permintaan baru", icon = <Inbox className="h-10 w-10 text-gray-300" /> }) {
+// ── Helper Components ──
+
+function EmptyState({
+  message = 'Belum ada permintaan baru',
+  subtitle = 'Permintaan dari kasir akan muncul di sini secara real-time.',
+  icon = <Inbox className="h-10 w-10 text-gray-300" />,
+}) {
   return (
-    <Card className="h-[50vh] border border-dashed border-gray-300 bg-white">
+    <Card className="h-[45vh] border border-dashed border-gray-300 bg-white">
       <CardContent className="w-full h-full flex flex-col items-center justify-center text-center space-y-3">
         {icon}
         <h2 className="text-gray-600 font-medium text-base">{message}</h2>
-        <p className="text-gray-400 text-sm">Permintaan dari kasir akan muncul di sini secara real-time.</p>
+        <p className="text-gray-400 text-sm">{subtitle}</p>
       </CardContent>
     </Card>
   )
