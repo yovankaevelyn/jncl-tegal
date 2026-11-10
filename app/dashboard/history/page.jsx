@@ -11,10 +11,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 const HistoryContent = dynamic(() => import('./HistoryContent'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="p-6 flex items-center justify-center h-64">
       <div className="relative">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-blue-600 absolute top-0"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-indigo-600 absolute top-0"></div>
       </div>
     </div>
   )
@@ -277,17 +277,17 @@ export default function HistoryPage() {
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 p-6 flex items-center justify-center">
+      <div className="p-6 flex items-center justify-center h-64">
         <div className="relative">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-blue-600 absolute top-0"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-indigo-600 absolute top-0"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 p-6">
+    <div className="bg-gray-50 min-h-screen p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         <HistoryContent
           requests={requests}

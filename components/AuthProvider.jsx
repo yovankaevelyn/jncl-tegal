@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 const AuthContext = createContext({});
 
 // ✅ Pages yang TIDAK butuh auth check realtime
-const PUBLIC_PATHS = ['/dashboard/history'];
+const PUBLIC_PATHS = [];
 
 export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile timeout')), 5000)
+        setTimeout(() => reject(new Error('Profile timeout')), 8000)
       );
 
       const fetchPromise = supabase
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 5000)
+          setTimeout(() => reject(new Error('Session timeout')), 10000)
         );
 
         const sessionPromise = supabase.auth.getSession();
@@ -135,9 +135,14 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('❌ Auth init error:', error);
         if (isMounted.current) {
+          // Timeout atau error → anggap tidak ada sesi, redirect ke login
           setUser(null);
           setProfile(null);
           setIsReady(true);
+          // Jika sedang di halaman dashboard, paksa ke signin
+          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
+            router.push('/auth/signin');
+          }
         }
         initialLoadDone.current = true;
       } finally {
