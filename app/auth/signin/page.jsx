@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -16,16 +16,8 @@ export default function SignIn() {
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   
-  // ✅ FIX HYDRATION: Wait for client mount
-  const [isMounted, setIsMounted] = useState(false)
-  
   const { signIn } = useAuth()
   const router = useRouter()
-
-  // ✅ FIX HYDRATION: Only render after mount
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -33,30 +25,27 @@ export default function SignIn() {
     setError(null)
 
     try {
-      console.log('🔐 Attempting sign in...')
       const data = await signIn(email, password)
-      
-      console.log('✅ Sign in successful:', data.user?.email)
-      
-      // Redirect ke /dashboard
       router.push('/dashboard')
-      router.refresh()
-      
     } catch (error) {
-      console.error('❌ Sign in error:', error)
-      setError(error.message || 'Failed to sign in. Please check your credentials.')
+      // Terjemahkan pesan error Supabase ke bahasa Indonesia
+      const msg = error.message || ''
+      if (msg.toLowerCase().includes('invalid login credentials') || msg.toLowerCase().includes('invalid credentials')) {
+        setError('Email atau password salah. Silakan coba lagi.')
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
+        setError('Email belum dikonfirmasi. Periksa inbox Anda.')
+      } else if (msg.toLowerCase().includes('too many requests')) {
+        setError('Terlalu banyak percobaan login. Coba lagi beberapa menit.')
+      } else {
+        setError(msg || 'Gagal masuk. Periksa kembali kredensial Anda.')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // ✅ FIX HYDRATION: Show nothing until mounted
-  if (!isMounted) {
-    return null
-  }
-
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
       <Card className="w-full max-w-md shadow-sm border border-gray-200 bg-white">
         <CardHeader className="space-y-1 text-center pb-8">
           <div className="flex justify-center mb-6">
@@ -91,6 +80,7 @@ export default function SignIn() {
                 placeholder="email@example.com"
                 className="h-11 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 autoComplete="email"
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -106,6 +96,7 @@ export default function SignIn() {
                 placeholder="••••••••"
                 className="h-11 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 autoComplete="current-password"
+                disabled={isLoading}
               />
             </div>
             <Button 

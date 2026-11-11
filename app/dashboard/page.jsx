@@ -14,12 +14,12 @@ export default function Dashboard() {
   const [timedOut, setTimedOut] = useState(false)
   const timeoutRef = useRef(null)
 
-  // Failsafe: jika setelah 12 detik masih loading → paksa ke signin
+  // Failsafe: jika setelah 25 detik masih loading → paksa ke signin
   useEffect(() => {
     timeoutRef.current = setTimeout(() => {
       setTimedOut(true)
       router.push('/auth/signin')
-    }, 12000)
+    }, 25000)
 
     return () => clearTimeout(timeoutRef.current)
   }, [router])

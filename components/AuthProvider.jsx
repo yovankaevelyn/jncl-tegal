@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile timeout')), 8000)
+        setTimeout(() => reject(new Error('Profile timeout')), 15000)
       );
 
       const fetchPromise = supabase
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 10000)
+          setTimeout(() => reject(new Error('Session timeout')), 20000)
         );
 
         const sessionPromise = supabase.auth.getSession();
@@ -135,14 +135,12 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('❌ Auth init error:', error);
         if (isMounted.current) {
-          // Timeout atau error → anggap tidak ada sesi, redirect ke login
+          // Timeout atau error → set isReady supaya halaman bisa handle sendiri
           setUser(null);
           setProfile(null);
           setIsReady(true);
-          // Jika sedang di halaman dashboard, paksa ke signin
-          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
-            router.push('/auth/signin');
-          }
+          // CATATAN: Biarkan page-level (dashboard/page.jsx) yang handle redirect
+          // Jangan redirect di sini karena bisa interrupt halaman auth (signin/signup)
         }
         initialLoadDone.current = true;
       } finally {
@@ -333,6 +331,11 @@ export const AuthProvider = ({ children }) => {
     isLoading: loading,
     isReady,
     userRole: profile?.role || null,
+    // Shorthand helpers yang dipakai oleh halaman-halaman
+    userProfile: profile,
+    isKasir: profile?.role === 'Kasir',
+    isGudang: profile?.role === 'Gudang',
+    isAdmin: profile?.role === 'Admin',
     supabase: getSupabase(),
     signIn,
     signUp,

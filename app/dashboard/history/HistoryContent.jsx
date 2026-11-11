@@ -37,10 +37,10 @@ export default function HistoryContent({
     if (statusFilter === 'active') {
       filtered = requests.filter((r) => r.status === 'Baru' || r.status === 'Diproses')
     } else if (statusFilter === 'completed') {
-      filtered = requests.filter((r) => r.status === 'Selesai' || r.status === 'Batal')
+      filtered = requests.filter((r) => r.status === 'Selesai' || r.status === 'Dibatalkan' || r.status === 'Batal')
     }
     
-    const statusOrder = { 'Baru': 1, 'Diproses': 2, 'Selesai': 3, 'Batal': 4 }
+    const statusOrder = { 'Baru': 1, 'Diproses': 2, 'Selesai': 3, 'Dibatalkan': 4, 'Batal': 5 }
     filtered.sort((a, b) => {
       const orderA = statusOrder[a.status] || 999
       const orderB = statusOrder[b.status] || 999
@@ -85,7 +85,8 @@ export default function HistoryContent({
       'Diterima': 'bg-amber-50 text-amber-700',
       'Diproses': 'bg-amber-50 text-amber-700',
       'Selesai': 'bg-emerald-50 text-emerald-700',
-      'Batal': 'bg-red-50 text-red-700'
+      'Batal': 'bg-red-50 text-red-700',
+      'Dibatalkan': 'bg-red-50 text-red-700',
     }
     return colors[status] || 'bg-gray-100 text-gray-700'
   }
@@ -249,7 +250,11 @@ export default function HistoryContent({
                       </td>
                       
                       <td className="w-[25%] min-w-[200px] py-3 px-4">
-                        <span className="font-medium text-gray-900 text-sm">{request.message || 'N/A'}</span>
+                        {request.message ? (
+                          <span className="font-medium text-gray-900 text-sm">{request.message}</span>
+                        ) : (
+                          <span className="text-gray-300 text-sm">—</span>
+                        )}
                       </td>
                       
                       <td className="w-[20%] min-w-[180px] py-3 px-4">

@@ -1,15 +1,12 @@
 // middleware.js
-// Paksa Node.js runtime agar @supabase/ssr tidak menyebabkan
-// warning "Node.js API is not supported in the Edge Runtime"
-export const runtime = 'nodejs'
-
-import { createServerClient } from '@supabase/ssr'
+// Middleware ringan tanpa import Supabase — cek session via cookie saja
+// Tidak ada Node.js API → aman di Edge Runtime (tidak ada warning build)
 import { NextResponse } from 'next/server'
 
-export async function middleware(request) {
+export function middleware(request) {
   const { pathname } = request.nextUrl
 
-  // ✅ CRITICAL: Skip middleware for static files, API routes & public display
+  // Skip middleware untuk static files, API routes & public display
   if (
     pathname.startsWith('/_next/static') ||
     pathname.startsWith('/_next/image') ||
@@ -21,59 +18,31 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const isAuthPath = pathname.startsWith('/auth')
+  const isDashboardPath = pathname.startsWith('/dashboard')
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) {
-          return request.cookies.get(name)?.value
-        },
-        set(name, value, options) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name, options) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
+  // Cek keberadaan session cookie Supabase
+  // Cookie Supabase biasanya bernama: sb-<project-ref>-auth-token
+  // atau auth-token (tergantung konfigurasi)
+  const cookies = request.cookies
+  const hasSession = [...cookies.getAll()].some(
+    (c) =>
+      c.name.startsWith('sb-') &&
+      (c.name.endsWith('-auth-token') || c.name.endsWith('-auth-token.0') || c.name.endsWith('-auth-token.1'))
   )
 
-  try {
-    // ✅ ONLY check user, NO database queries
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const isAuthPath = pathname.startsWith('/auth')
-    const isDashboardPath = pathname.startsWith('/dashboard')
-
-    // Simple redirect rules
-    if (!user && isDashboardPath) {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
-    }
-
-    if (user && isAuthPath && pathname !== '/auth/pending-approval') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    return response
-  } catch (err) {
-    console.error('Middleware error:', err)
-    return response
+  // Redirect ke signin jika tidak ada session dan mencoba akses dashboard
+  if (!hasSession && isDashboardPath) {
+    return NextResponse.redirect(new URL('/auth/signin', request.url))
   }
+
+  // Redirect ke dashboard jika sudah login dan mencoba akses halaman auth
+  // (kecuali pending-approval)
+  if (hasSession && isAuthPath && pathname !== '/auth/pending-approval') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
