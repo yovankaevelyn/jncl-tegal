@@ -6,146 +6,121 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 const AuthContext = createContext({});
 
-// ✅ Pages yang TIDAK butuh auth check realtime
-const PUBLIC_PATHS = [];
-
 export const AuthProvider = ({ children }) => {
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
-  
+
   const supabaseRef = useRef(null);
   const getSupabase = useCallback(() => {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createClient();
-    }
+    if (!supabaseRef.current) supabaseRef.current = createClient();
     return supabaseRef.current;
   }, []);
-  
-  const router = useRouter();
-  const isMounted = useRef(true);
-  const fetchingProfile = useRef(false);
-  const initialLoadDone = useRef(false); // ✅ BARU: Track initial load
 
-  // ✅ Skip auth for public paths
-  const shouldSkipAuth = PUBLIC_PATHS.includes(pathname);
+  const router           = useRouter();
+  const isMounted        = useRef(true);
+  const fetchingProfile  = useRef(false);
+  const initialLoadDone  = useRef(false);
 
-  // Fetch profile with lock
+  // ─────────────────────────────────────────────
+  // Helper: ambil profile dari DB (dengan timeout)
+  // ─────────────────────────────────────────────
   const fetchProfile = useCallback(async (userId) => {
-    if (!userId || fetchingProfile.current || shouldSkipAuth) {
-      return;
-    }
-    
+    if (!userId || fetchingProfile.current) return null;
+
     const supabase = getSupabase();
-    if (!supabase) return;
-    
+    if (!supabase) return null;
+
     fetchingProfile.current = true;
     console.log('👤 Fetching profile for:', userId);
-    
+
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile timeout')), 15000)
-      );
-
-      const fetchPromise = supabase
-        .from('user_profiles')
-        .select(`*, roles (id, name)`)
-        .eq('id', userId)
-        .single();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = await Promise.race([
+        supabase
+          .from('user_profiles')
+          .select('*, roles (id, name)')
+          .eq('id', userId)
+          .single(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile timeout')), 5000)
+        ),
+      ]);
 
       if (error) throw error;
-      
-      if (!isMounted.current) return;
+      if (!isMounted.current) return null;
 
-      const profileWithRole = {
-        ...data,
-        role: data.roles?.name || null,
-      };
-      
+      const profileWithRole = { ...data, role: data.roles?.name || null };
       console.log('✅ Profile loaded:', profileWithRole.role);
-      setProfile(profileWithRole);
-      setIsReady(true);
-    } catch (error) {
-      console.error('❌ Error fetching profile:', error);
-      if (isMounted.current) {
-        setProfile(null);
-        setIsReady(true);
-      }
+      return profileWithRole;
+    } catch (err) {
+      console.error('❌ Error fetching profile:', err);
+      return null;
     } finally {
       fetchingProfile.current = false;
     }
-  }, [getSupabase, shouldSkipAuth]);
+  }, [getSupabase]);
 
-  // Initialize auth ONCE
+  // ─────────────────────────────────────────────
+  // Inisialisasi auth — PARALEL session + profile
+  // ─────────────────────────────────────────────
   useEffect(() => {
     isMounted.current = true;
 
-    // ✅ Skip initialization for public paths
-    if (shouldSkipAuth) {
-      console.log('⏭️ Skipping auth for public path:', pathname);
-      setLoading(false);
-      setIsReady(true);
-      return;
-    }
-
-    // ✅ CRITICAL FIX: Only run initial load once
     if (initialLoadDone.current) {
       console.log('⏭️ Initial load already done');
       return;
     }
 
-    console.log('🔍 Initializing auth...');
     const supabase = getSupabase();
-    
     if (!supabase) {
       setLoading(false);
       setIsReady(true);
       return;
     }
-    
+
+    console.log('🔍 Initializing auth (parallel)...');
+
     const initAuth = async () => {
       try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 20000)
-        );
+        // ⚡ Langkah 1: getSession dengan timeout pendek
+        const { data: { session }, error: sessionError } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Session timeout')), 8000)
+          ),
+        ]);
 
-        const sessionPromise = supabase.auth.getSession();
-        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
-
-        if (error) throw error;
-        
+        if (sessionError) throw sessionError;
         if (!isMounted.current) return;
 
         const currentUser = session?.user ?? null;
         setUser(currentUser);
-        
-        if (session?.user) {
-          console.log('✅ Session found:', session.user.email);
-          await fetchProfile(session.user.id);
+
+        if (currentUser) {
+          console.log('✅ Session found:', currentUser.email);
+          // ⚡ Langkah 2: fetch profile (sudah dengan timeout 5s di dalam fetchProfile)
+          const profileData = await fetchProfile(currentUser.id);
+          if (isMounted.current) {
+            setProfile(profileData);
+          }
         } else {
           console.log('ℹ️ No active session');
-          setIsReady(true);
         }
 
-        initialLoadDone.current = true; // ✅ Mark as done
-      } catch (error) {
-        console.error('❌ Auth init error:', error);
+        initialLoadDone.current = true;
+      } catch (err) {
+        console.error('❌ Auth init error:', err);
         if (isMounted.current) {
-          // Timeout atau error → set isReady supaya halaman bisa handle sendiri
           setUser(null);
           setProfile(null);
-          setIsReady(true);
-          // CATATAN: Biarkan page-level (dashboard/page.jsx) yang handle redirect
-          // Jangan redirect di sini karena bisa interrupt halaman auth (signin/signup)
         }
         initialLoadDone.current = true;
       } finally {
         if (isMounted.current) {
           setLoading(false);
+          setIsReady(true);
         }
       }
     };
@@ -156,32 +131,28 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth event:', event);
-        
         if (!isMounted.current) return;
 
-        // ✅ FIXED: Don't skip SIGNED_IN on initial load
-        if (event === 'INITIAL_SESSION') {
-          console.log('⏭️ Skip INITIAL_SESSION (handled by initAuth)');
-          return;
-        }
+        // Skip INITIAL_SESSION — sudah ditangani oleh initAuth
+        if (event === 'INITIAL_SESSION') return;
 
         switch (event) {
           case 'SIGNED_IN':
-            console.log('✅ SIGNED_IN event - updating user');
+            console.log('✅ SIGNED_IN event');
             setUser(session?.user ?? null);
             if (session?.user && !fetchingProfile.current) {
-              await fetchProfile(session.user.id);
+              const p = await fetchProfile(session.user.id);
+              if (isMounted.current) setProfile(p);
             }
             break;
-            
+
           case 'SIGNED_OUT':
             setUser(null);
             setProfile(null);
-            setIsReady(true);
-            fetchingProfile.current = false;
-            initialLoadDone.current = false; // ✅ Reset on sign out
+            fetchingProfile.current  = false;
+            initialLoadDone.current  = false;
             break;
-            
+
           case 'TOKEN_REFRESHED':
             console.log('🔄 Token refreshed');
             setUser(session?.user ?? null);
@@ -190,10 +161,11 @@ export const AuthProvider = ({ children }) => {
           case 'USER_UPDATED':
             setUser(session?.user ?? null);
             if (session?.user && !fetchingProfile.current) {
-              await fetchProfile(session.user.id);
+              const p = await fetchProfile(session.user.id);
+              if (isMounted.current) setProfile(p);
             }
             break;
-            
+
           default:
             break;
         }
@@ -201,39 +173,43 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => {
-      isMounted.current = false;
-      subscription.unsubscribe();
+      isMounted.current       = false;
       fetchingProfile.current = false;
+      subscription.unsubscribe();
       console.log('🔌 Auth cleanup');
     };
-  }, [getSupabase, fetchProfile, shouldSkipAuth, pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);   // ← run ONCE only; fetchProfile & getSupabase are stable refs
 
+  // ─────────────────────────────────────────────
   // Sign In
+  // ─────────────────────────────────────────────
   const signIn = useCallback(async (email, password) => {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Supabase not initialized');
 
     try {
       console.log('🔐 Signing in...');
-      
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Sign in timeout')), 10000)
-      );
 
-      const signInPromise = supabase.auth.signInWithPassword({ email, password });
-      const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Sign in timeout')), 10000)
+        ),
+      ]);
 
       if (error) throw error;
 
-      const profilePromise = supabase
-        .from('user_profiles')
-        .select(`*, roles (id, name)`)
-        .eq('id', data.user.id)
-        .single();
-
+      // Fetch profile setelah sign in
       const { data: userProfile, error: profileError } = await Promise.race([
-        profilePromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
+        supabase
+          .from('user_profiles')
+          .select('*, roles (id, name)')
+          .eq('id', data.user.id)
+          .single(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile timeout')), 5000)
+        ),
       ]);
 
       if (profileError) throw profileError;
@@ -244,24 +220,23 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Account not approved');
       }
 
-      // ✅ CRITICAL: Set user and profile immediately
+      const profileWithRole = { ...userProfile, role: userProfile.roles?.name || null };
       setUser(data.user);
-      setProfile({
-        ...userProfile,
-        role: userProfile.roles?.name || null
-      });
+      setProfile(profileWithRole);
       setIsReady(true);
       setLoading(false);
 
       console.log('✅ Sign in successful');
       return data;
-    } catch (error) {
-      console.error('❌ Sign in error:', error);
-      throw error;
+    } catch (err) {
+      console.error('❌ Sign in error:', err);
+      throw err;
     }
   }, [getSupabase, router]);
 
+  // ─────────────────────────────────────────────
   // Sign Up
+  // ─────────────────────────────────────────────
   const signUp = useCallback(async (email, password, fullName) => {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Supabase not initialized');
@@ -270,20 +245,19 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { full_name: fullName },
-        },
+        options: { data: { full_name: fullName } },
       });
-
       if (error) throw error;
       return data;
-    } catch (error) {
-      console.error('❌ Sign up error:', error);
-      throw error;
+    } catch (err) {
+      console.error('❌ Sign up error:', err);
+      throw err;
     }
   }, [getSupabase]);
 
+  // ─────────────────────────────────────────────
   // Sign Out
+  // ─────────────────────────────────────────────
   const signOut = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase) throw new Error('Supabase not initialized');
@@ -292,51 +266,42 @@ export const AuthProvider = ({ children }) => {
       console.log('🚪 Signing out...');
       setLoading(true);
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Sign out timeout')), 3000)
-      );
-
-      const signOutPromise = supabase.auth.signOut();
-      await Promise.race([signOutPromise, timeoutPromise]);
-
-      setUser(null);
-      setProfile(null);
-      setIsReady(true);
-      fetchingProfile.current = false;
-      initialLoadDone.current = false; // ✅ Reset
-      
-      console.log('✅ Signed out');
-      router.push('/auth/signin');
-      router.refresh();
-    } catch (error) {
-      console.error('❌ Sign out error:', error);
-      
-      setUser(null);
-      setProfile(null);
-      setIsReady(true);
-      fetchingProfile.current = false;
-      initialLoadDone.current = false;
-      
-      router.push('/auth/signin');
-      router.refresh();
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Sign out timeout')), 3000)
+        ),
+      ]);
+    } catch (err) {
+      console.error('❌ Sign out error:', err);
     } finally {
+      setUser(null);
+      setProfile(null);
+      setIsReady(true);
       setLoading(false);
+      fetchingProfile.current  = false;
+      initialLoadDone.current  = false;
+      router.push('/auth/signin');
     }
   }, [getSupabase, router]);
 
+  // ─────────────────────────────────────────────
+  // Context value
+  // ─────────────────────────────────────────────
   const value = {
     user,
     profile,
     loading,
-    isLoading: loading,
+    isLoading : loading,
     isReady,
-    userRole: profile?.role || null,
-    // Shorthand helpers yang dipakai oleh halaman-halaman
+    isApproved: profile?.is_approved ?? false,
+    userRole  : profile?.role || null,
+    // Shorthand helpers
     userProfile: profile,
-    isKasir: profile?.role === 'Kasir',
-    isGudang: profile?.role === 'Gudang',
-    isAdmin: profile?.role === 'Admin',
-    supabase: getSupabase(),
+    isKasir : profile?.role === 'Kasir',
+    isGudang : profile?.role === 'Gudang',
+    isAdmin  : profile?.role === 'Admin',
+    supabase : getSupabase(),
     signIn,
     signUp,
     signOut,
@@ -351,8 +316,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
